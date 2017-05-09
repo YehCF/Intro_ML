@@ -3,6 +3,7 @@
 import sys
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
@@ -11,7 +12,8 @@ from tester import dump_classifier_and_data
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-features_list = ['poi','salary'] # You will need to use more features
+features_list = ['poi','salary','bonus', 'expenses','loan_advances','long_term_incentive','exercised_stock_options',
+'shared_receipt_with_poi','from_poi_to_this_person','from_this_person_to_poi'] # You will need to use more features
 
 ### Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "r") as data_file:
@@ -26,7 +28,9 @@ all_people = [name for name in data_dict.keys()]
 
 # How many POI in the dataset
 all_POI_names = [name for name in data_dict.keys() if data_dict[name]['poi'] == 1]
+all_non_POI_names = [name for name in data_dict.keys() if data_dict[name]['poi'] == 0]
 print("Number of POI:", len(all_POI_names))
+print("Number of non-POI:", len(all_non_POI_names))
 
 # How many features in the dataset
 all_features = [feature for feature in data_dict[all_people[0]].keys()]
@@ -61,7 +65,7 @@ def printDescriptives(features, data_dict):
 		print("feature:{:s} -mean:{:.2f}, std:{:.2f}, CI:{:.2f}-{:.2f}, min_max_range:{:.2f}-{:.2f},median:{:.2f}, per75:{:.2f}, per25:{:.2f}".format(feature, mean_data, std_data, confidience_interval[0], confidience_interval[1],min_value, max_value, median_data, per_75, per_25))
 	return all_stats
 # Show all the stats of train features
-stats = printDescriptives(train_features, data_dict)
+#all_stats = printDescriptives(train_features, data_dict)
 
 #Draw boxplot for all numerical features
 '''
@@ -81,13 +85,15 @@ plt.show()
 
 # Remove the most evident outlier 
 # find the one that got the highest salary
-outlier_name = filter(lambda x: data_dict[x]["salary"] == stats[0]["max"], all_people)
-print("Outlier:", outlier_name[0]) # 'TOTAL'
-data_dict.pop(outlier_name[0], None)
+#outlier_name = filter(lambda x: data_dict[x]["salary"] == all.stats[0]["max"], all_people)
+#print("Outlier:", outlier_name[0]) # 'TOTAL'
+data_dict.pop('TOTAL', None)
 
 # Data Explore Again
-all_stats = printDescriptives(train_features, data_dict)
+#all_stats = printDescriptives(train_features, data_dict)
 
+'''
+# boxplot again
 import matplotlib.pyplot as plt
 for i, feature in enumerate(train_features):
 	feature_data = featureFormat(data_dict, [feature])
@@ -97,12 +103,79 @@ for i, feature in enumerate(train_features):
 	sp.axes.get_yaxis().set_visible(False)
 	sp.axes.get_xaxis().set_visible(False)
 plt.show()
+'''
 
+# Back to Task 1: Select Features
+chosenFeatures = ['salary','bonus']
+
+
+def getFeaturesWithLabel(feature_name, data_dict, label):
+
+	negative_feature = []
+	positive_feature = []
+	for name in data_dict.keys():
+		if data_dict[name][label] == 0:
+			value = data_dict[name][feature_name]
+			if value == 'NaN':
+				value = 0
+			negative_feature.append(float(value))
+		elif data_dict[name][label] == 1:
+			value = data_dict[name][feature_name]
+			if value == 'NaN':
+				value = 0
+			positive_feature.append(float(value))
+	return np.array(positive_feature), np.array(negative_feature)
+
+def boxplotForSelectingFeatures(features_list, data_dict, label, subplot_attributes):
+	'''
+		boxplot for feature selection (to compare features between positve and negative examples)
+	'''
+	num_subplots = subplot_attributes[0]
+	num_x_axis = subplot_attributes[1]
+	num_y_axis = subplot_attributes[2]
+
+	for i, feature_name in enumerate(features_list):
+		pos_feature, neg_feature = getFeaturesWithLabel(feature_name, data_dict, label)
+		sp = plt.subplot(num_x_axis,num_y_axis,(i+1))
+		box = plt.boxplot([neg_feature, pos_feature], meanline = True)
+		print(neg_feature)
+		print(pos_feature)
+		plt.title(feature_name, fontsize = 5)
+		sp.axes.get_yaxis().set_visible(False)
+		sp.axes.get_xaxis().set_visible(False)
+	plt.show()
+#boxplotForSelectingFeatures(train_features, data_dict, 'poi', (20, 4, 5))
+
+
+'''
+def plotFeaturesForComparison(features_list, data_dict, label):
+
+	negative_example = []
+	positive_example = []
+	for feature_name in features_list:
+		negative_feature = []
+		positive_feature = []
+		for name in data_dict.keys():
+			if data_dict[name][label] == 0:
+				negative_feature.append(data_dict[name][feature_name])
+			elif data_dict[name][label] == 1:
+				positive_feature.append(data_dict[name][feature_name])
+		negative_example.append(negative_feature)
+		positive_example.append(positive_feature)
+
+	# scatter plot ('red': POI, 'blue': non-POI)
+	plt.scatter(negative_example[0],negative_example[1], c = 'b')
+	plt.scatter(positive_example[0],positive_example[1], c = 'r')
+	plt.xlabel(features_list[0])
+	plt.ylabel(features_list[1])
+	plt.show()
+
+plotFeaturesForComparison(['deferred_income','restricted_stock_deferred'],data_dict, 'poi')
 
 features = featureFormat(data_dict, features_list[1:], sort_keys = True)
 print(features.shape)
+'''
 
-# Back to Task 1: Select Features
 
 
 
@@ -123,7 +196,11 @@ labels, features = targetFeatureSplit(data)
 
 # Provided to give you a starting point. Try a variety of classifiers.
 from sklearn.naive_bayes import GaussianNB
-clf = GaussianNB()
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+from sklearn.tree import DecisionTreeClassifier
+
+
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
@@ -134,8 +211,25 @@ clf = GaussianNB()
 
 # Example starting point. Try investigating other evaluation techniques!
 from sklearn.cross_validation import train_test_split
+from sklearn.metrics import precision_score, recall_score
+from sklearn.model_selection import GridSearchCV
 features_train, features_test, labels_train, labels_test = \
     train_test_split(features, labels, test_size=0.3, random_state=42)
+
+svm_parameters = {'C':[1, 2, 5, 10], 'gamma': ['auto']}
+tree_parameters = {'min_samples_split':[2, 3, 5, 7, 9, 10], 'min_samples_leaf':[1, 2, 3, 5, 7, 9, 10]}
+
+svm = SVC()
+clf = DecisionTreeClassifier(min_samples_leaf = 10, random_state = 42)
+#clf = GridSearchCV(tree, tree_parameters)
+clf.fit(features_train, labels_train)
+pred = clf.predict(features_test)
+acc = accuracy_score(labels_test, pred)
+prec = precision_score(labels_test, pred)
+rec = recall_score(labels_test, pred)
+#print(clf.best_params_)
+
+print("Accuracy:", acc, "; precision:", prec, "; recall:",rec)
 
 ### Task 6: Dump your classifier, dataset, and features_list so anyone can
 ### check your results. You do not need to change anything below, but make sure
