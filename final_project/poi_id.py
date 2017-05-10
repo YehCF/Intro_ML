@@ -15,6 +15,11 @@ from tester import dump_classifier_and_data
 features_list = ['poi','salary','bonus', 'expenses','loan_advances','long_term_incentive','exercised_stock_options',
 'shared_receipt_with_poi','from_poi_to_this_person','from_this_person_to_poi'] # You will need to use more features
 
+features_list = ['poi','salary','bonus', 'expenses','director_fees','to_messages','restricted_stock'
+,'loan_advances','deferred_income','deferral_payments','long_term_incentive'
+,'from_messages','total_payments','restricted_stock_deferred','other','exercised_stock_options','shared_receipt_with_poi',
+'from_poi_to_this_person','from_this_person_to_poi'] 
+
 ### Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "r") as data_file:
     data_dict = pickle.load(data_file)
@@ -106,8 +111,6 @@ plt.show()
 '''
 
 # Back to Task 1: Select Features
-chosenFeatures = ['salary','bonus']
-
 
 def getFeaturesWithLabel(feature_name, data_dict, label):
 
@@ -144,39 +147,8 @@ def boxplotForSelectingFeatures(features_list, data_dict, label, subplot_attribu
 		sp.axes.get_yaxis().set_visible(False)
 		sp.axes.get_xaxis().set_visible(False)
 	plt.show()
+
 #boxplotForSelectingFeatures(train_features, data_dict, 'poi', (20, 4, 5))
-
-
-'''
-def plotFeaturesForComparison(features_list, data_dict, label):
-
-	negative_example = []
-	positive_example = []
-	for feature_name in features_list:
-		negative_feature = []
-		positive_feature = []
-		for name in data_dict.keys():
-			if data_dict[name][label] == 0:
-				negative_feature.append(data_dict[name][feature_name])
-			elif data_dict[name][label] == 1:
-				positive_feature.append(data_dict[name][feature_name])
-		negative_example.append(negative_feature)
-		positive_example.append(positive_feature)
-
-	# scatter plot ('red': POI, 'blue': non-POI)
-	plt.scatter(negative_example[0],negative_example[1], c = 'b')
-	plt.scatter(positive_example[0],positive_example[1], c = 'r')
-	plt.xlabel(features_list[0])
-	plt.ylabel(features_list[1])
-	plt.show()
-
-plotFeaturesForComparison(['deferred_income','restricted_stock_deferred'],data_dict, 'poi')
-
-features = featureFormat(data_dict, features_list[1:], sort_keys = True)
-print(features.shape)
-'''
-
-
 
 
 
@@ -188,6 +160,27 @@ my_dataset = data_dict
 data = featureFormat(my_dataset, features_list, sort_keys = True)
 labels, features = targetFeatureSplit(data)
 
+# Feature Scaling
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+features = scaler.fit_transform(features)
+
+# Feature Selection with SelectKBest
+'''
+from sklearn.feature_selection import SelectKBest, f_classif
+
+num_k = 10
+selector = SelectKBest(f_classif, num_k)
+selector.fit(features, labels)
+features = selector.transform(features)
+'''
+# Feature Selection with PCA
+from sklearn.decomposition import RandomizedPCA
+
+pca = RandomizedPCA(n_components = 10, whiten = True).fit(features)
+
+features = pca.transform(features)
+print(features.shape)
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
 ### Note that if you want to do PCA or other multi-stage operations,
@@ -216,17 +209,22 @@ from sklearn.model_selection import GridSearchCV
 features_train, features_test, labels_train, labels_test = \
     train_test_split(features, labels, test_size=0.3, random_state=42)
 
-svm_parameters = {'C':[1, 2, 5, 10], 'gamma': ['auto']}
-tree_parameters = {'min_samples_split':[2, 3, 5, 7, 9, 10], 'min_samples_leaf':[1, 2, 3, 5, 7, 9, 10]}
+#svm_parameters = {'C':[1, 2, 5, 10], 'gamma': [0.001, 0.005, 0.01, 0.05, 0.1]}
+#tree_parameters = {'min_samples_split':[2, 3, 5, 7, 9, 10], 'min_samples_leaf':[1, 2, 3, 5, 7, 9, 10]}
 
-svm = SVC()
-clf = DecisionTreeClassifier(min_samples_leaf = 10, random_state = 42)
+#svm = SVC()
+#tree = DecisionTreeClassifier(random_state = 42)
 #clf = GridSearchCV(tree, tree_parameters)
+clf = GaussianNB()
 clf.fit(features_train, labels_train)
 pred = clf.predict(features_test)
 acc = accuracy_score(labels_test, pred)
 prec = precision_score(labels_test, pred)
 rec = recall_score(labels_test, pred)
+#important_features = clf.feature_importances_
+#most_important_feature = np.amax(important_features, axis = 0)
+#most_important_feature_loc = np.argmax(important_features, axis = 0)
+#print(most_important_feature, most_important_feature_loc)
 #print(clf.best_params_)
 
 print("Accuracy:", acc, "; precision:", prec, "; recall:",rec)
