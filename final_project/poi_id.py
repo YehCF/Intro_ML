@@ -216,11 +216,11 @@ features_train, features_test, labels_train, labels_test = \
 ada_parameters = {'n_estimators':[25, 30, 35, 40, 45, 50, 55, 60], 
 'learning_rate':[0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.5, 1.0]}
 #svm = SVC()
-#tree = DecisionTreeClassifier(random_state = 42)
+tree = DecisionTreeClassifier(random_state = 42)
 #knn = KNeighborsClassifier(n_neighbors = 3)
-clf = AdaBoostClassifier(n_estimators = 25, learning_rate = 0.04, random_state = 42)
+#clf = AdaBoostClassifier(n_estimators = 25, learning_rate = 0.04, random_state = 42)
 #clf = GridSearchCV(ada, ada_parameters)
-
+clf = tree
 clf.fit(features_train, labels_train)
 pred = clf.predict(features_test)
 acc = accuracy_score(labels_test, pred)
