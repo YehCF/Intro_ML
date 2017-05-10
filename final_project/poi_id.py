@@ -161,9 +161,11 @@ data = featureFormat(my_dataset, features_list, sort_keys = True)
 labels, features = targetFeatureSplit(data)
 
 # Feature Scaling
+
 from sklearn.preprocessing import MinMaxScaler
 scaler = MinMaxScaler()
 features = scaler.fit_transform(features)
+
 
 # Feature Selection with SelectKBest
 
@@ -174,13 +176,16 @@ selector = SelectKBest(f_classif, num_k)
 selector.fit(features, labels)
 features = selector.transform(features)
 
+
+'''
 # Feature Selection with PCA
-#from sklearn.decomposition import RandomizedPCA
+from sklearn.decomposition import RandomizedPCA
+pca = RandomizedPCA(n_components = 5).fit(features)
+print(pca.explained_variance_ratio_)
+features = pca.transform(features)
+print(features.shape)
+'''
 
-#pca = RandomizedPCA(n_components = 10, whiten = True).fit(features)
-
-#features = pca.transform(features)
-#print(features.shape)
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
 ### Note that if you want to do PCA or other multi-stage operations,
@@ -195,6 +200,24 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble	import AdaBoostClassifier
 
+# Naive Bayes
+#nb = GaussianNB()
+
+# SVM
+#svm_parameters = {'C':[1, 5, 10, 50, 100, 500, 1000], 'gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]}
+#svm = SVC(random_state = 42, C = 1000, gamma = 1.0)
+
+# Decision Tree
+#tree_parameters = {'min_samples_split':[2, 3, 5, 7, 9, 10], 'min_samples_leaf':[1, 2, 3, 5, 7, 9, 10]}
+#tree = DecisionTreeClassifier(random_state = 42, min_samples_split = 2, min_samples_leaf = 10)
+
+# K-Nearest Neighbor
+#knn_parameters = {'n_neighbors': [3, 4, 5, 6, 7, 8, 9, 10]}
+#knn = KNeighborsClassifier()
+
+# Adaboost
+ada_parameters = {'n_estimators':[25, 30, 35, 40, 45, 50, 55, 60], 'learning_rate':[0.07, 0.08, 0.09, 0.1, 0.5, 1.0]}
+ada = AdaBoostClassifier(n_estimators = 55, learning_rate = 0.1, random_state = 42)
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
@@ -205,32 +228,28 @@ from sklearn.ensemble	import AdaBoostClassifier
 
 # Example starting point. Try investigating other evaluation techniques!
 from sklearn.cross_validation import train_test_split
-from sklearn.metrics import precision_score, recall_score
+from sklearn.metrics import make_scorer, precision_score, recall_score
 from sklearn.model_selection import GridSearchCV
 features_train, features_test, labels_train, labels_test = \
     train_test_split(features, labels, test_size=0.3, random_state=42)
 
-#svm_parameters = {'C':[1, 5, 10, 50, 100, 500, 1000], 'gamma': [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]}
-tree_parameters = {'min_samples_split':[2, 3, 5, 7, 9, 10], 'min_samples_leaf':[1, 2, 3, 5, 7, 9, 10]}
-#knn_parameters = {'n_neighbors': [3, 4, 5, 6, 7, 8, 9, 10]}
-#ada_parameters = {'n_estimators':[25, 30, 35, 40, 45, 50, 55, 60], 'learning_rate':[0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.5, 1.0]}
-#svm = SVC(random_state = 42, C = 50, gamma = 0.001)
-#tree = DecisionTreeClassifier(random_state = 42, min_samples_split = 2, min_samples_leaf = 10)
-#knn = KNeighborsClassifier()
-#clf = AdaBoostClassifier(n_estimators = 25, learning_rate = 0.04, random_state = 42)
-clf = GaussianNB()
-#clf = GridSearchCV(tree, tree_parameters)
+#scorer = make_scorer(recall_score)
+
+clf = ada
+#clf = GridSearchCV(ada, ada_parameters, scoring = scorer)
 
 clf.fit(features_train, labels_train)
 pred = clf.predict(features_test)
 acc = accuracy_score(labels_test, pred)
 prec = precision_score(labels_test, pred)
 rec = recall_score(labels_test, pred)
+
 #important_features = clf.feature_importances_
 #most_important_feature = np.amax(important_features, axis = 0)
 #most_important_feature_loc = np.argmax(important_features, axis = 0)
 #print(most_important_feature, most_important_feature_loc)
 #print(clf.best_params_)
+print(ada.feature_importances_)
 
 print("Accuracy:", acc, "; precision:", prec, "; recall:",rec)
 
